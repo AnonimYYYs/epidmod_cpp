@@ -148,6 +148,7 @@ int main()
 
 	}
 	time_t end = time(0);
-	printf("%I64d\n%f\n", end - begin, static_cast<float>(end - begin) / static_cast<float>(REPEAT));
+	printf("%I64d\n%f\n", end - begin, static_cast<float>(end - begin) / static_cast<float>(REPEAT));	// change type of long long unsigned in ptintf
+	//printf("%llu\n%f\n", end - begin, static_cast<float>(end - begin) / static_cast<float>(REPEAT));	// depending on platform
 	return(0);
 }
