@@ -5,8 +5,9 @@
 
 #include <stdio.h>
 #include <vector>
-#include <ctime>	
+#include <ctime>
 #include <random>
+#include <algorithm>
 
 // TODO: Reference additional headers your program requires here.
 
