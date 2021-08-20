@@ -1,1 +1,68 @@
-{"exposed":2,"healthy":1,"infectious":228,"removed":16769}
+{
+  "duration": 143,
+  "results": [
+    {
+      "exposed": 17000,
+      "healthy": 144500,
+      "infectious": 8500,
+      "removed": 0,
+      "time": 0
+    },
+    {
+      "exposed": 37179,
+      "healthy": 100806,
+      "infectious": 10677,
+      "removed": 21338,
+      "time": 19
+    },
+    {
+      "exposed": 46835,
+      "healthy": 40400,
+      "infectious": 16523,
+      "removed": 66242,
+      "time": 38
+    },
+    {
+      "exposed": 21500,
+      "healthy": 12047,
+      "infectious": 13605,
+      "removed": 122848,
+      "time": 57
+    },
+    {
+      "exposed": 4702,
+      "healthy": 6122,
+      "infectious": 4302,
+      "removed": 154874,
+      "time": 76
+    },
+    {
+      "exposed": 801,
+      "healthy": 5071,
+      "infectious": 851,
+      "removed": 163277,
+      "time": 95
+    },
+    {
+      "exposed": 152,
+      "healthy": 4902,
+      "infectious": 125,
+      "removed": 164821,
+      "time": 114
+    },
+    {
+      "exposed": 22,
+      "healthy": 4875,
+      "infectious": 19,
+      "removed": 165084,
+      "time": 133
+    },
+    {
+      "exposed": 5,
+      "healthy": 4873,
+      "infectious": 4,
+      "removed": 165118,
+      "time": 150
+    }
+  ]
+}
