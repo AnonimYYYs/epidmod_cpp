@@ -4,23 +4,6 @@
 #include "epidmod.h"
 
 
-// this values would be read from json instead of initializing them as constants
-// const unsigned int PEOPLE_AMOUNT = 17000;
-// const unsigned int CONNECTIONS_AMOUNT = 6;
-// const unsigned int RAND_CONNECTIONS_AMOUNT = 6;
-// const int CONN_ONE_SIDE = CONNECTIONS_AMOUNT / 2;
-
-// const float INFECT_PART = 0.05f;
-// const float EXPOSED_PART = 0.1f;
-
-// const float WSG_K = 0.2f;
-
-// const unsigned int TIME = 50;
-
-// const float CATCH_INFECT = 0.0558f;
-// const float CATCH_EXPOSED = CATCH_INFECT / 8;
-
-
 
 struct PERSON
 {
@@ -47,9 +30,14 @@ int main()
 	unsigned int TIME = 50;
 
 	float CATCH_INFECT = 0.0f;
-	float CATCH_EXPOSED = 0.0f;
+
+	float WEIBULL_EXPOSED_A = 0.0f;
+	float WEIBULL_EXPOSED_B = 0.0f;
+	float WEIBULL_INFECT_A = 0.0f;
+	float WEIBULL_INFECT_B = 0.0f;
 
 
+	int TICK = 17;
 
 	nlohmann::json out;
 
@@ -81,8 +69,20 @@ int main()
 		if (j["CATCH_INFECT"] != nullptr) { CATCH_INFECT = j["CATCH_INFECT"].get<float>(); }
 		else { out["error"] = "wrong CATCH_INFECT value"; std::cout << out << std::endl; return 1; }
 
-		if (j["CATCH_EXPOSED"] != nullptr) { CATCH_EXPOSED = j["CATCH_EXPOSED"].get<float>(); }
-		else { out["error"] = "wrong CATCH_EXPOSED value"; std::cout << out << std::endl; return 1; }
+		if (j["WEIBULL_EXPOSED_TO_INFECT_A"] != nullptr) { WEIBULL_EXPOSED_A = j["WEIBULL_EXPOSED_TO_INFECT_A"].get<float>(); }
+		else { out["error"] = "wrong WEIBULL_EXPOSED_TO_INFECT_A value"; std::cout << out << std::endl; return 1; }
+
+		if (j["WEIBULL_EXPOSED_TO_INFECT_B"] != nullptr) { WEIBULL_EXPOSED_B = j["WEIBULL_EXPOSED_TO_INFECT_B"].get<float>(); }
+		else { out["error"] = "wrong WEIBULL_EXPOSED_TO_INFECT_B value"; std::cout << out << std::endl; return 1; }
+
+		if (j["WEIBULL_INFECT_TO_REMOVED_A"] != nullptr) { WEIBULL_INFECT_A = j["WEIBULL_INFECT_TO_REMOVED_A"].get<float>(); }
+		else { out["error"] = "wrong WEIBULL_INFECT_TO_REMOVED_A value"; std::cout << out << std::endl; return 1; }
+
+		if (j["WEIBULL_INFECT_TO_REMOVED_B"] != nullptr) { WEIBULL_INFECT_B = j["WEIBULL_INFECT_TO_REMOVED_B"].get<float>(); }
+		else { out["error"] = "wrong WEIBULL_INFECT_TO_REMOVED_B value"; std::cout << out << std::endl; return 1; }
+
+		if (j["PRINT_TICK"] != nullptr) { TICK = j["PRINT_TICK"].get<int>(); }
+		else { out["error"] = "wrong PRINT_TICK value"; std::cout << out << std::endl; return 1; }
 
 	}
 	catch (...) {
@@ -102,13 +102,15 @@ int main()
 	std::mt19937 gen(time(0));
 	std::uniform_real_distribution<float> randFloat(0, 1);
 	std::uniform_int_distribution<int> randPeople(0, PEOPLE_AMOUNT - 1);
-	std::weibull_distribution<float> randRemoved(2.5f, 16.5f);
-	std::weibull_distribution<float> randInf(1.24f, 5.376f);
+	std::weibull_distribution<float> randInf(WEIBULL_EXPOSED_A, WEIBULL_EXPOSED_B);
+	std::weibull_distribution<float> randRemoved(WEIBULL_INFECT_A, WEIBULL_INFECT_B);
 
 	int exp_amount = static_cast<int>(PEOPLE_AMOUNT * EXPOSED_PART);
 	int inf_amount = static_cast<int>(PEOPLE_AMOUNT * INFECT_PART);
 
 	std::vector<PERSON> people = std::vector<PERSON>();
+
+	time_t begin = time(0);
 
 	for (size_t i = 0; i < PEOPLE_AMOUNT; i++)	// creating not randomized graph by connecting N neighbours
 	{
@@ -152,6 +154,26 @@ int main()
 		}
 	}
 
+	int s0 = 0;		// cout result
+	int s1 = 0;
+	int s2 = 0;// 0 - healthy, 1 - exposed, 2 - infectious, 3 - removed
+	int s3 = 0;
+	for (size_t i = 0; i < PEOPLE_AMOUNT; i++)
+	{
+		if (people[i].state == 0) { s0++; }
+		if (people[i].state == 1) { s1++; }
+		if (people[i].state == 2) { s2++; }
+		if (people[i].state == 3) { s3++; }
+	}
+	out["results"] = nlohmann::json::array();
+	out["results"].push_back({
+				{"time", 0},
+				{"healthy", s0},
+				{"exposed", s1},
+				{"infectious", s2},
+				{"removed", s3}
+		});
+
 	for (size_t t = 1; t <= TIME; t++)	// update states many times
 	{
 
@@ -171,7 +193,6 @@ int main()
 				float ch1 = 1.0f;
 				for (size_t j = 0; j < connects.size(); j++)
 				{
-					if (people[connects[j]].state == 1) { ch1 *= 1 - CATCH_EXPOSED; }
 					if (people[connects[j]].state == 2) { ch1 *= 1 - CATCH_INFECT; }
 				}
 				if ((1 - ch1) > people[i].chance) { people[i].isUpdate = true; }
@@ -195,25 +216,33 @@ int main()
 		}
 
 
+		if (((TICK != 0) && (t % TICK == 0)) || t == TIME) {
+			s0 = 0;		// cout result
+			s1 = 0;
+			s2 = 0;// 0 - healthy, 1 - exposed, 2 - infectious, 3 - removed
+			s3 = 0;
+			for (size_t i = 0; i < PEOPLE_AMOUNT; i++)
+			{
+				if (people[i].state == 0) { s0++; }
+				if (people[i].state == 1) { s1++; }
+				if (people[i].state == 2) { s2++; }
+				if (people[i].state == 3) { s3++; }
+			}
+			out["results"].push_back({
+					{"time", t},
+					{"healthy", s0},
+					{"exposed", s1},
+					{"infectious", s2},
+					{"removed", s3}
+				});
+		}
+
 	}
 
+	time_t end = time(0);
+	out["duration"] = end - begin;
 
-	int s0 = 0;		// cout result
-	int s1 = 0;
-	int s2 = 0;// 0 - healthy, 1 - exposed, 2 - infectious, 3 - removed
-	int s3 = 0;
-	for (size_t i = 0; i < PEOPLE_AMOUNT; i++)
-	{
-		if (people[i].state == 0) { s0++; }
-		if (people[i].state == 1) { s1++; }
-		if (people[i].state == 2) { s2++; }
-		if (people[i].state == 3) { s3++; }
-	}
-	out["healthy"] = s0;
-	out["exposed"] = s1;
-	out["infectious"] = s2;
-	out["removed"] = s3;
-	std::cout << out << std::endl;
+	std::cout << out.dump(4) << std::endl;
 
 
 	return(0);
